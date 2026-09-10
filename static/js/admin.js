@@ -1,16 +1,16 @@
 /* ============================================================
-   NEXORA ADMIN — dashboard, charts, CRUD • UZ / RU / EN
+   NEXORA ADMIN — dashboard, charts, CRUD • UZ / RU / EN + Hamyon API
    ============================================================ */
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = (s) => String(s ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[c]));
 const fmtMoney = (n) => Number(n || 0).toLocaleString('ru-RU');
 const fmtDate = (s) => { try { return new Date(String(s).replace(' ', 'T')).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return s || ''; } };
 
 const I18N = {
   uz: {
-    m_dash: 'Dashboard', m_orders: 'Buyurtmalar', m_users: 'Foydalanuvchilar', m_games: "O‘yinlar", m_packages: 'Paketlar', m_payments: 'To‘lovlar', m_settings: 'Sozlamalar', m_theme: 'Mavzu', m_logout: 'Chiqish', m_view: 'WebApp',
+    m_dash: 'Dashboard', m_orders: 'Buyurtmalar', m_users: 'Foydalanuvchilar', m_games: "O‘yinlar", m_packages: 'Paketlar', m_payments: 'To‘lovlar', m_hamyon: 'Hamyon API', m_settings: 'Sozlamalar', m_theme: 'Mavzu', m_logout: 'Chiqish', m_view: 'WebApp',
     login_sub: 'Boshqaruv paneliga kirish', login_ph: 'Admin paroli', login_btn: 'Kirish', login_err: 'Parol noto‘g‘ri!',
     c_users: 'Foydalanuvchilar', c_orders: 'Buyurtmalar', c_revenue: 'Daromad', c_pending: 'Kutilayotgan', c_today: 'Bugun', c_completed: 'Bajarilgan', c_paid: 'Tasdiqlangan', c_cancelled: 'Bekor qilingan', c_processing: 'Jarayonda',
     ch_daily: 'Kunlik daromad (30 kun)', ch_daily_sub: 'So‘nggi 30 kunlik savdo dinamikasi', ch_monthly: 'Oylik daromad (12 oy)', ch_monthly_sub: 'Oylik savdo dinamikasi',
@@ -31,9 +31,20 @@ const I18N = {
     t_saved: 'Saqlandi!', t_deleted: 'O‘chirildi!', t_err: 'Xatolik yuz berdi!', t_status: 'Holat yangilandi!', t_block: 'Foydalanuvchi bloklandi', t_unblock: 'Blokdan chiqarildi',
     empty: 'Ma’lumot topilmadi', prev: '‹ Oldingi', nextpg: 'Keyingi ›', of: 'jami', new_badge: 'YANGI',
     st_pending: 'Kutilmoqda', st_paid: 'To‘langan', st_processing: 'Jarayonda', st_completed: 'Bajarildi', st_cancelled: 'Bekor qilindi',
+    // Hamyon
+    h_title: 'Hamyon API — avtomatik to‘lov', h_sub: 'hamyon-api.uz orqali HUMO/UZCARD to‘lovlarini 5-30s ichida avtomatik qabul qiling',
+    h_enabled: 'Hamyon yoqilgan', h_shop_id: 'Shop ID (hamyon-api.uz dan)', h_shop_key: 'Shop Key (maxfiy kalit)', h_auto: 'Avto tasdiqlash (paid bo‘lsa buyurtma avtomatik tasdiqlanadi)', h_card_name: 'Karta nomi (foydalanuvchiga ko‘rinadi)',
+    h_urls: 'Webhook URL lar (Hamyon botida sozlang)', h_prepare: 'Prepare URL', h_complete: 'Complete URL', h_webhook: 'Webhook (yagona)', h_copy: 'Nusxalash', h_copied: 'Nusxalandi!',
+    h_test: 'Test to‘lov yaratish', h_test_ok: 'Test muvaffaqiyatli — API ishlayapti!', h_test_fail: 'Test xatolik: ',
+    h_how: 'Qanday ulash?', h_step1: '1. @HamyonAPIBot da /start → shop_id va shop_key oling', h_step2: '2. @HumoCardBot yoki @CardXabarBot ni Hamyon ga ulang', h_step3: '3. Yuqoridagi Shop ID/Key ni shu yerga kiritib saqlang', h_step4: '4. Quyidagi Complete URL ni Hamyon boti sozlamalarida complete_url qilib qo‘ying (prepare_url ham shunday)',
+    h_payments: 'Hamyon to‘lovlari', h_pay_id: 'Hamyon ID', h_card: 'Karta', h_amount: 'Summa', h_order: 'Buyurtma', h_time: 'Vaqt', h_expires: 'Tugash', h_raw: 'Raw',
+    h_no_config: 'Avval Shop ID va Shop Key ni kiriting va saqlang',
+    h_stats: 'Statistika', h_total: 'Jami', h_pending: 'Kutilmoqda', h_paid: 'To‘langan', h_cancelled: 'Bekor',
+    h_filter: 'Qidirish: order, payment_id, karta', h_auto_hint: 'Yoqilsa, Hamyon to‘lovi paid bo‘lganda buyurtma avtomatik paid bo‘ladi va mijozga xabar ketadi',
+    h_order_link: 'Buyurtmani ko‘rish',
   },
   ru: {
-    m_dash: 'Дашборд', m_orders: 'Заказы', m_users: 'Пользователи', m_games: 'Игры', m_packages: 'Пакеты', m_payments: 'Оплаты', m_settings: 'Настройки', m_theme: 'Тема', m_logout: 'Выйти', m_view: 'WebApp',
+    m_dash: 'Дашборд', m_orders: 'Заказы', m_users: 'Пользователи', m_games: 'Игры', m_packages: 'Пакеты', m_payments: 'Оплаты', m_hamyon: 'Hamyon API', m_settings: 'Настройки', m_theme: 'Тема', m_logout: 'Выйти', m_view: 'WebApp',
     login_sub: 'Вход в панель управления', login_ph: 'Пароль админа', login_btn: 'Войти', login_err: 'Неверный пароль!',
     c_users: 'Пользователи', c_orders: 'Заказы', c_revenue: 'Доход', c_pending: 'Ожидают', c_today: 'Сегодня', c_completed: 'Выполнено', c_paid: 'Подтверждено', c_cancelled: 'Отменено', c_processing: 'В работе',
     ch_daily: 'Доход по дням (30 дней)', ch_daily_sub: 'Динамика продаж за 30 дней', ch_monthly: 'Доход по месяцам (12)', ch_monthly_sub: 'Динамика продаж по месяцам',
@@ -54,9 +65,19 @@ const I18N = {
     t_saved: 'Сохранено!', t_deleted: 'Удалено!', t_err: 'Произошла ошибка!', t_status: 'Статус обновлён!', t_block: 'Пользователь заблокирован', t_unblock: 'Пользователь разблокирован',
     empty: 'Ничего не найдено', prev: '‹ Назад', nextpg: 'Далее ›', of: 'из', new_badge: 'NEW',
     st_pending: 'Ожидает', st_paid: 'Оплачен', st_processing: 'В обработке', st_completed: 'Выполнен', st_cancelled: 'Отменён',
+    h_title: 'Hamyon API — автооплата', h_sub: 'Принимайте HUMO/UZCARD за 5-30с через hamyon-api.uz',
+    h_enabled: 'Hamyon включён', h_shop_id: 'Shop ID (из hamyon-api.uz)', h_shop_key: 'Shop Key (секретный)', h_auto: 'Авто-подтверждение (при paid заказ станет paid)', h_card_name: 'Название карты',
+    h_urls: 'Webhook URL (укажите в Hamyon боте)', h_prepare: 'Prepare URL', h_complete: 'Complete URL', h_webhook: 'Webhook (единый)', h_copy: 'Копировать', h_copied: 'Скопировано!',
+    h_test: 'Тестовый платёж', h_test_ok: 'Тест успешен — API работает!', h_test_fail: 'Ошибка теста: ',
+    h_how: 'Как подключить?', h_step1: '1. @HamyonAPIBot /start → получите shop_id и shop_key', h_step2: '2. Подключите @HumoCardBot или @CardXabarBot к Hamyon', h_step3: '3. Введите Shop ID/Key здесь и сохраните', h_step4: '4. Укажите Complete URL в настройках магазина Hamyon (prepare_url тоже)',
+    h_payments: 'Платежи Hamyon', h_pay_id: 'Hamyon ID', h_card: 'Карта', h_amount: 'Сумма', h_order: 'Заказ', h_time: 'Время', h_expires: 'Истекает', h_raw: 'Raw',
+    h_no_config: 'Сначала введите Shop ID и Shop Key и сохраните',
+    h_stats: 'Статистика', h_total: 'Всего', h_pending: 'Ожидает', h_paid: 'Оплачен', h_cancelled: 'Отменён',
+    h_filter: 'Поиск: order, payment_id, карта', h_auto_hint: 'Если включено, при paid заказ автоматом станет paid и клиенту уйдёт уведомление',
+    h_order_link: 'Смотреть заказ',
   },
   en: {
-    m_dash: 'Dashboard', m_orders: 'Orders', m_users: 'Users', m_games: 'Games', m_packages: 'Packages', m_payments: 'Payments', m_settings: 'Settings', m_theme: 'Theme', m_logout: 'Logout', m_view: 'WebApp',
+    m_dash: 'Dashboard', m_orders: 'Orders', m_users: 'Users', m_games: 'Games', m_packages: 'Packages', m_payments: 'Payments', m_hamyon: 'Hamyon API', m_settings: 'Settings', m_theme: 'Theme', m_logout: 'Logout', m_view: 'WebApp',
     login_sub: 'Sign in to control panel', login_ph: 'Admin password', login_btn: 'Sign in', login_err: 'Wrong password!',
     c_users: 'Users', c_orders: 'Orders', c_revenue: 'Revenue', c_pending: 'Pending', c_today: 'Today', c_completed: 'Completed', c_paid: 'Confirmed', c_cancelled: 'Cancelled', c_processing: 'Processing',
     ch_daily: 'Daily revenue (30 days)', ch_daily_sub: 'Sales dynamics for 30 days', ch_monthly: 'Monthly revenue (12)', ch_monthly_sub: 'Monthly sales dynamics',
@@ -77,6 +98,16 @@ const I18N = {
     t_saved: 'Saved!', t_deleted: 'Deleted!', t_err: 'Something went wrong!', t_status: 'Status updated!', t_block: 'User blocked', t_unblock: 'User unblocked',
     empty: 'Nothing found', prev: '‹ Prev', nextpg: 'Next ›', of: 'of', new_badge: 'NEW',
     st_pending: 'Pending', st_paid: 'Paid', st_processing: 'Processing', st_completed: 'Completed', st_cancelled: 'Cancelled',
+    h_title: 'Hamyon API — auto payments', h_sub: 'Accept HUMO/UZCARD in 5-30s via hamyon-api.uz',
+    h_enabled: 'Hamyon enabled', h_shop_id: 'Shop ID (from hamyon-api.uz)', h_shop_key: 'Shop Key (secret)', h_auto: 'Auto confirm (order becomes paid on Hamyon paid)', h_card_name: 'Card display name',
+    h_urls: 'Webhook URLs (set in Hamyon bot)', h_prepare: 'Prepare URL', h_complete: 'Complete URL', h_webhook: 'Webhook (single)', h_copy: 'Copy', h_copied: 'Copied!',
+    h_test: 'Create test payment', h_test_ok: 'Test success — API works!', h_test_fail: 'Test error: ',
+    h_how: 'How to connect?', h_step1: '1. @HamyonAPIBot /start → get shop_id and shop_key', h_step2: '2. Connect @HumoCardBot or @CardXabarBot to Hamyon', h_step3: '3. Enter Shop ID/Key here and save', h_step4: '4. Set Complete URL in Hamyon shop settings (same for prepare_url)',
+    h_payments: 'Hamyon payments', h_pay_id: 'Hamyon ID', h_card: 'Card', h_amount: 'Amount', h_order: 'Order', h_time: 'Time', h_expires: 'Expires', h_raw: 'Raw',
+    h_no_config: 'First enter Shop ID and Shop Key and save',
+    h_stats: 'Stats', h_total: 'Total', h_pending: 'Pending', h_paid: 'Paid', h_cancelled: 'Cancelled',
+    h_filter: 'Search: order, payment_id, card', h_auto_hint: 'If enabled, when Hamyon paid, order auto becomes paid and user gets notified',
+    h_order_link: 'View order',
   },
 };
 const MONTHS = {
@@ -90,6 +121,7 @@ const S = {
   page: 'dash', authed: false,
   orders: { page: 1, q: '', status: '', game_id: '' },
   users: { page: 1, q: '' },
+  hamyon: { page: 1, q: '', status: '' },
   games: [], settings: {},
 };
 let charts = [];
@@ -111,7 +143,7 @@ async function api(path, { method = 'GET', body = null, form = null } = {}) {
 function toast(msg, kind = 'ok') {
   const el = document.createElement('div');
   el.className = 'atoast ' + kind;
-  el.innerHTML = `<svg><use href="#${kind === 'err' ? 'a-x' : 'a-check'}"/></svg><span>${esc(msg)}</span>`;
+  el.innerHTML = `<svg><use href="#${kind === 'err' ? 'a-x' : 'a-check'}\"/></svg><span>${esc(msg)}</span>`;
   $('#atoastRoot').appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, 2600);
 }
@@ -119,7 +151,7 @@ function openModal(html, wide = false) {
   closeModal();
   const ov = document.createElement('div');
   ov.className = 'overlay'; ov.id = 'amOv';
-  ov.innerHTML = `<div class="modal ${wide ? 'wide' : ''}">${html}</div>`;
+  ov.innerHTML = `<div class="modal ${wide ? 'wide' : ''}\">${html}</div>`;
   ov.addEventListener('click', (e) => { if (e.target === ov) closeModal(); });
   $('#amodalRoot').appendChild(ov);
 }
@@ -153,7 +185,11 @@ function applyThemeColors() {
   if (st.theme_accent) document.documentElement.style.setProperty('--accent', st.theme_accent);
 }
 function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
-function stPill(s) { return `<span class="st st-${esc(s)}">${esc(t('st_' + s))}</span>`; }
+function stPill(s) { return `<span class="st st-${esc(s)}\">${esc(t('st_' + s))}</span>`; }
+function hamyonPill(s) {
+  const map = { pending: 'st-pending', paid: 'st-paid', cancelled: 'st-cancelled', expired: 'st-cancelled' };
+  return `<span class="st ${map[s] || 'st-pending'}\">${esc(s)}</span>`;
+}
 function switchHtml(on) { return `<button type="button" class="switch ${on ? 'on' : ''}" data-sw="${on ? 1 : 0}"></button>`; }
 function bindSwitches(root = document) {
   $$('[data-sw]', root).forEach((b) => b.onclick = () => {
@@ -237,12 +273,12 @@ async function doLogin() {
 }
 
 /* ---------------- router ---------------- */
-const TITLES = { dash: 'm_dash', orders: 'm_orders', users: 'm_users', games: 'm_games', packages: 'm_packages', payments: 'm_payments', settings: 'm_settings' };
+const TITLES = { dash: 'm_dash', orders: 'm_orders', users: 'm_users', games: 'm_games', packages: 'm_packages', payments: 'm_payments', hamyon: 'm_hamyon', settings: 'm_settings' };
 function renderPage() {
   charts.forEach((c) => { try { c.destroy(); } catch { } }); charts = [];
   $('#pageTitle').textContent = t(TITLES[S.page] || 'm_dash');
   $$('#sideNav .sn').forEach((x) => x.classList.toggle('active', x.dataset.page === S.page));
-  ({ dash: pDash, orders: pOrders, users: pUsers, games: pGames, packages: pPackages, payments: pPayments, settings: pSettings })[S.page]();
+  ({ dash: pDash, orders: pOrders, users: pUsers, games: pGames, packages: pPackages, payments: pPayments, hamyon: pHamyon, settings: pSettings })[S.page]();
 }
 function loading() { $('#apage').innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div>`; }
 
@@ -254,6 +290,9 @@ async function pDash() {
   const c = d.counts, bs = c.by_status;
   const badge = $('#navPending');
   if (bs.pending > 0) { badge.hidden = false; badge.textContent = bs.pending; } else badge.hidden = true;
+  const hb = d.hamyon || {};
+  const hBadge = $('#navHamyon');
+  if (hb.pending > 0) { hBadge.hidden = false; hBadge.textContent = hb.pending; } else if (hBadge) hBadge.hidden = true;
   const hasChart = typeof Chart !== 'undefined';
   $('#apage').innerHTML = `
     <div class="cards rise">
@@ -268,6 +307,13 @@ async function pDash() {
       <div class="scard"><small>${esc(t('c_completed'))}</small><b class="count" data-n="${bs.completed}">0</b></div>
       <div class="scard"><small>${esc(t('c_cancelled'))}</small><b class="count" data-n="${bs.cancelled}">0</b></div>
     </div>
+    ${hb.total !== undefined ? `
+    <div class="cards rise" style="grid-template-columns:repeat(4,1fr)">
+      <div class="scard" style="border:1px solid var(--accent)"><small>${esc(t('h_stats'))} — ${esc(t('h_total'))}</small><b class="count" data-n="${hb.total || 0}">0</b><span>Hamyon</span></div>
+      <div class="scard"><small>Hamyon ${esc(t('h_pending'))}</small><b class="count" data-n="${hb.pending || 0}">0</b></div>
+      <div class="scard good"><small>Hamyon ${esc(t('h_paid'))}</small><b class="count" data-n="${hb.paid || 0}">0</b></div>
+      <div class="scard"><small>Hamyon ${esc(t('h_cancelled'))}</small><b class="count" data-n="${hb.cancelled || 0}">0</b></div>
+    </div>` : ''}
     ${hasChart ? `
     <div class="grid2 rise">
       <div class="panel"><h3>${esc(t('ch_daily'))}</h3><div class="sub">${esc(t('ch_daily_sub'))}</div><canvas id="chDaily"></canvas></div>
@@ -285,7 +331,6 @@ async function pDash() {
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>${esc(t('th_pkg'))}</th><th>${esc(t('l_orders'))}</th><th>${esc(t('l_revenue'))}</th></tr></thead>
         <tbody>${d.top_packages.map((p, i) => `<tr><td><b>${i + 1}</b></td><td>${esc(p.package_name)}<br><small style="color:var(--mut)">${esc(p.game_name)}</small></td><td><b>${p.orders}</b></td><td><b>${fmtMoney(p.revenue)}</b></td></tr>`).join('') || `<tr><td colspan="4" class="empty">${esc(t('empty'))}</td></tr>`}</tbody></table></div></div>
     </div>`;
-  // count-up
   $$('.count').forEach((el) => {
     const target = +el.dataset.n, t0 = performance.now(), dur = 900;
     const step = (now) => {
@@ -301,7 +346,6 @@ async function pDash() {
   Chart.defaults.font.family = 'Manrope,sans-serif';
   Chart.defaults.color = tick;
   const acc = cssVar('--accent') || '#38bdf8', prim = cssVar('--primary') || '#1d4ed8';
-  // daily
   const dctx = $('#chDaily').getContext('2d');
   const grad = dctx.createLinearGradient(0, 0, 0, 280);
   grad.addColorStop(0, acc + '55'); grad.addColorStop(1, acc + '00');
@@ -315,7 +359,6 @@ async function pDash() {
       plugins: { legend: { labels: { boxWidth: 12, usePointStyle: true } } },
       scales: { x: { grid: { color: grid } }, y: { grid: { color: grid }, ticks: { callback: (v) => v >= 1000 ? (v / 1000) + 'k' : v } }, y1: { position: 'right', grid: { display: false }, ticks: { precision: 0 } } } },
   }));
-  // games doughnut
   charts.push(new Chart($('#chGames'), {
     type: 'doughnut',
     data: { labels: d.games.map((g) => g.game_name), datasets: [{ data: d.games.map((g) => g.revenue),
@@ -323,7 +366,6 @@ async function pDash() {
       borderWidth: 0, hoverOffset: 10 }]},
     options: { responsive: true, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, padding: 16 } } } },
   }));
-  // monthly bar
   charts.push(new Chart($('#chMonthly'), {
     type: 'bar',
     data: { labels: d.monthly.map((x) => { const [y, m] = x.month.split('-'); return MONTHS[S.lang][+m - 1] + ' ' + y.slice(2); }),
@@ -333,7 +375,6 @@ async function pDash() {
     options: { responsive: true, plugins: { legend: { display: false } },
       scales: { x: { grid: { display: false } }, y: { grid: { color: grid }, ticks: { callback: (v) => v >= 1000 ? (v / 1000) + 'k' : v } } } },
   }));
-  // status doughnut
   charts.push(new Chart($('#chStatus'), {
     type: 'doughnut',
     data: { labels: ['pending', 'paid', 'processing', 'completed', 'cancelled'].map((s) => t('st_' + s)),
@@ -362,15 +403,16 @@ async function pOrders() {
         ${S.games.map((g) => `<option value="${g.id}" ${String(f.game_id) === String(g.id) ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
     </div>
     <div class="panel rise" style="padding:12px"><div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>${esc(t('th_code'))}</th><th>${esc(t('th_client'))}</th><th>${esc(t('th_game'))}</th><th>${esc(t('th_pkg'))}</th><th>${esc(t('th_price'))}</th><th>${esc(t('th_date'))}</th><th>${esc(t('th_status'))}</th><th>${esc(t('th_act'))}</th></tr></thead>
+      <thead><tr><th>${esc(t('th_code'))}</th><th>${esc(t('th_client'))}</th><th>${esc(t('th_game'))}</th><th>${esc(t('th_pkg'))}</th><th>${esc(t('th_price'))}</th><th>${esc(t('th_date'))}</th><th>${esc(t('th_status'))}</th><th>Hamyon</th><th>${esc(t('th_act'))}</th></tr></thead>
       <tbody>${d.orders.map((o) => `<tr>
         <td class="code">${esc(o.order_code)}${o.receipt_url && o.status === 'pending' ? ` <span class="st st-pending" style="font-size:9px">${esc(t('new_badge'))}</span>` : ''}</td>
         <td>${esc(o.first_name)} ${esc(o.last_name)}<br><small style="color:var(--mut)">${esc(o.game_username || '')}</small></td>
         <td>${esc(o.game_name)}</td><td>${esc(o.package_name)}<br><small style="color:var(--mut)">${esc(o.package_amount || '')}</small></td>
         <td><b>${fmtMoney(o.price)} ${esc(o.currency)}</b></td><td style="white-space:nowrap">${esc(fmtDate(o.created_at))}</td>
         <td>${stPill(o.status)}</td>
+        <td>${o.hamyon_status ? hamyonPill(o.hamyon_status) + (o.hamyon_card ? `<br><small>${esc(o.hamyon_card)}</small>` : '') : '<small style="color:var(--mut)">—</small>'}</td>
         <td><div class="row-actions"><button class="icon-btn" data-view="${o.id}" title="${esc(t('btn_view'))}"><svg><use href="#a-eye"/></svg></button></div></td>
-      </tr>`).join('') || `<tr><td colspan="8" class="empty">${esc(t('empty'))}</td></tr>`}</tbody></table></div>
+      </tr>`).join('') || `<tr><td colspan="9" class="empty">${esc(t('empty'))}</td></tr>`}</tbody></table></div>
       <div class="pager"><button class="btn ghost sm" id="pgPrev" ${d.page <= 1 ? 'disabled' : ''}>${esc(t('prev'))}</button>
       <span>${d.page} / ${pages}</span>
       <button class="btn ghost sm" id="pgNext" ${d.page >= pages ? 'disabled' : ''}>${esc(t('nextpg'))}</button></div>
@@ -387,7 +429,7 @@ async function orderModal(id) {
   openModal(`<div class="loading-dots"><span></span><span></span><span></span></div>`, true);
   let d;
   try { d = await api('/api/admin/orders/' + id); } catch { closeModal(); toast(t('t_err'), 'err'); return; }
-  const o = d.order, h = d.history || [];
+  const o = d.order, h = d.history || [], hamyon = d.hamyon_payments || [];
   openModal(`
     <div class="m-head"><h3>${esc(t('o_detail'))} • ${esc(o.order_code)}</h3>
       <button class="icon-btn" onclick="closeModal()"><svg><use href="#a-x"/></svg></button></div>
@@ -399,6 +441,10 @@ async function orderModal(id) {
     <div class="kv"><span>${esc(t('th_price'))}</span><b>${fmtMoney(o.price)} ${esc(o.currency)}</b></div>
     <div class="kv"><span>${esc(t('th_date'))}</span><b>${esc(fmtDate(o.created_at))}</b></div>
     <div class="kv"><span>Telegram ID</span><b>${esc(o.telegram_id)}</b></div>
+    ${hamyon.length ? `
+    <h3 style="font-family:var(--font-d);font-size:14px;margin:14px 0 4px">Hamyon API</h3>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Payment ID</th><th>Card</th><th>Amount</th><th>Status</th><th>Expires</th></tr></thead>
+    <tbody>${hamyon.map((hp) => `<tr><td class="code">${esc(hp.payment_id)}</td><td>${esc(hp.card)}</td><td><b>${fmtMoney(hp.amount)}</b><br><small>${fmtMoney(hp.requested_amount)} req</small></td><td>${hamyonPill(hp.status)}</td><td>${esc(fmtDate(hp.expires_at))}</td></tr>`).join('')}</tbody></table></div>` : ''}
     <h3 style="font-family:var(--font-d);font-size:14px;margin:14px 0 4px">${esc(t('o_receipt'))}</h3>
     ${o.receipt_url ? `<a href="${esc(o.receipt_url)}" target="_blank"><img class="rc-img" src="${esc(o.receipt_url)}" alt="receipt"></a>` : `<div class="empty">${esc(t('no_receipt'))}</div>`}
     <h3 style="font-family:var(--font-d);font-size:14px;margin:14px 0 4px">${esc(t('o_history'))}</h3>
@@ -503,7 +549,7 @@ function gameModal(g) {
     </div>
     <div class="frow3">
       <div class="field"><label>${esc(t('g_colors'))} 1</label><input type="color" id="gC1" value="${esc(g.color_from || '#38bdf8')}"></div>
-      <div class="field"><label>${esc(t('g_colors'))} 2</label><input type="color" id="gC2" value="${esc(g.color_to || '#1d4ed8')}"></div>
+      <div class="field"><label>${esc(t('g_colors'))} 2</label><input type="color" id="gC2" value="${esc(g.color_to || '#1d4ed8')}\"></div>
       <div class="field"><label>${esc(t('g_order'))}</label><input type="number" id="gSort" value="${g.sort_order || 0}"></div>
     </div>
     <div class="field"><label>${esc(t('g_active'))}</label>${switchHtml(!!+g.is_active)}</div>
@@ -646,6 +692,139 @@ function pmModal(m) {
   };
 }
 
+/* ---------------- HAMYON ---------------- */
+async function pHamyon() {
+  loading();
+  let settings, urls, payments;
+  try {
+    const [s, u] = await Promise.all([
+      api('/api/admin/settings'),
+      fetch('/api/hamyon/callback/info').then(r=>r.json()).catch(()=>({ok:false})),
+    ]);
+    settings = s.settings;
+    S.settings = settings;
+    urls = u.ok ? u : { prepare_url: location.origin + '/api/hamyon/callback/prepare', complete_url: location.origin + '/api/hamyon/callback/complete', webhook_url: location.origin + '/api/hamyon/webhook' };
+  } catch { $('#apage').innerHTML = `<div class="empty">${esc(t('t_err'))}</div>`; return; }
+
+  const v = (k) => esc(settings[k] || '');
+  const enabled = settings.hamyon_enabled === '1';
+  const hasCreds = settings.hamyon_shop_id && settings.hamyon_shop_key;
+
+  // fetch payments
+  try {
+    const f = S.hamyon;
+    const q = new URLSearchParams({ page: f.page, per_page: 15, q: f.q, status: f.status });
+    const hp = await api('/api/admin/hamyon/payments?' + q);
+    payments = hp;
+  } catch { payments = { payments: [], total: 0, page: 1, per_page: 15 }; }
+
+  const pages = Math.max(1, Math.ceil((payments.total || 0) / (payments.per_page || 15)));
+
+  $('#apage').innerHTML = `
+    <div class="page-head rise"><h3>${esc(t('h_title'))}</h3></div>
+    <div class="panel rise" style="margin-bottom:14px"><h3>${esc(t('h_sub'))}</h3><div class="sub">${esc(t('h_how'))}</div>
+      <ul class="tl" style="margin-top:10px">
+        <li class="on">${esc(t('h_step1'))}</li>
+        <li class="on">${esc(t('h_step2'))}</li>
+        <li class="on">${esc(t('h_step3'))}</li>
+        <li class="on">${esc(t('h_step4'))}</li>
+      </ul>
+    </div>
+
+    <div class="set-grid rise">
+      <div class="panel"><h3>Hamyon sozlamalari</h3><div class="sub">API kalitlari</div>
+        <div class="field"><label>${esc(t('h_enabled'))}</label>${switchHtml(enabled)}<div class="sub" style="margin-top:6px">${esc(t('h_auto_hint'))}</div></div>
+        <div class="field"><label>${esc(t('h_shop_id'))}</label><input id="h_shop_id" value="${v('hamyon_shop_id')}" placeholder="shop_..."></div>
+        <div class="field"><label>${esc(t('h_shop_key'))}</label><input id="h_shop_key" type="password" value="${v('hamyon_shop_key')}" placeholder="sk_..."></div>
+        <div class="field"><label>${esc(t('h_auto'))}</label>${switchHtml(settings.hamyon_auto_complete === '1')}</div>
+        <div class="field"><label>${esc(t('h_card_name'))}</label><input id="h_card_name" value="${v('hamyon_card_name') || 'HUMO/UZCARD'}" placeholder="HUMO/UZCARD"></div>
+        <button class="btn primary" id="hSave" style="margin-top:10px">${esc(t('btn_save'))}</button>
+        <button class="btn ghost" id="hTest" style="margin-top:10px;margin-left:8px" ${hasCreds ? '' : 'disabled'}>${esc(t('h_test'))}</button>
+        <div id="hTestRes" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel"><h3>${esc(t('h_urls'))}</h3><div class="sub">hamyon-api.uz panelida qo‘ying</div>
+        <div class="field"><label>${esc(t('h_prepare'))}</label><div class="up-row"><div class="field"><input id="h_pre" value="${esc(urls.prepare_url)}" readonly></div><button class="btn ghost sm" data-copy="${esc(urls.prepare_url)}">${esc(t('h_copy'))}</button></div></div>
+        <div class="field"><label>${esc(t('h_complete'))}</label><div class="up-row"><div class="field"><input id="h_comp" value="${esc(urls.complete_url)}" readonly></div><button class="btn ghost sm" data-copy="${esc(urls.complete_url)}">${esc(t('h_copy'))}</button></div></div>
+        <div class="field"><label>${esc(t('h_webhook'))}</label><div class="up-row"><div class="field"><input id="h_web" value="${esc(urls.webhook_url)}" readonly></div><button class="btn ghost sm" data-copy="${esc(urls.webhook_url)}">${esc(t('h_copy'))}</button></div></div>
+        <div class="sub" style="margin-top:8px">Complete URL ga <b>paid</b> yoki <b>cancel</b> keladi. Har bir to‘lov yakuniy callback bilan tugaydi. Cron kerak emas.</div>
+        ${!hasCreds ? `<div class="empty" style="margin-top:12px">${esc(t('h_no_config'))}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="page-head rise" style="margin-top:18px"><h3>${esc(t('h_payments'))}</h3><span class="cnt">${payments.total || 0} ${esc(t('of'))}</span></div>
+    <div class="filters rise">
+      <input id="hQ" value="${esc(S.hamyon.q)}" placeholder="${esc(t('h_filter'))}">
+      <select id="hS"><option value="">${esc(t('f_status'))}: ${esc(t('all'))}</option>
+        ${['pending','paid','cancelled'].map((s)=>`<option value="${s}" ${S.hamyon.status===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+    </div>
+    <div class="panel rise" style="padding:12px"><div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>${esc(t('h_pay_id'))}</th><th>${esc(t('h_order'))}</th><th>${esc(t('h_card'))}</th><th>${esc(t('h_amount'))}</th><th>${esc(t('th_status'))}</th><th>${esc(t('h_time'))}</th><th>${esc(t('h_expires'))}</th><th>${esc(t('th_act'))}</th></tr></thead>
+      <tbody>${(payments.payments||[]).map((p)=>`<tr>
+        <td class="code">${esc(p.payment_id)}</td>
+        <td class="code">${esc(p.order_code)}<br><small>${esc(p.game_name||'')} ${esc(p.package_name||'')}</small></td>
+        <td>${esc(p.card)}<br><small>${esc(p.first_name||'')} ${esc(p.game_username||'')}</small></td>
+        <td><b>${fmtMoney(p.amount)}</b><br><small>req ${fmtMoney(p.requested_amount||p.order_price||0)}</small></td>
+        <td>${hamyonPill(p.status)}</td>
+        <td style="white-space:nowrap">${esc(fmtDate(p.created_at))}</td>
+        <td style="white-space:nowrap">${esc(fmtDate(p.expires_at))}</td>
+        <td><button class="btn ghost sm" data-ord="${p.order_code ? esc(p.order_code) : ''}" onclick="if(this.dataset.ord) { navigator.clipboard.writeText(this.dataset.ord); toast('${esc(t('h_copied'))}') }">${esc(t('h_order_link'))}</button></td>
+      </tr>`).join('') || `<tr><td colspan="8" class="empty">${esc(t('empty'))}</td></tr>`}</tbody></table></div>
+      <div class="pager"><button class="btn ghost sm" id="hPrev" ${payments.page<=1?'disabled':''}>${esc(t('prev'))}</button><span>${payments.page} / ${pages}</span><button class="btn ghost sm" id="hNext" ${payments.page>=pages?'disabled':''}>${esc(t('nextpg'))}</button></div>
+    </div>
+  `;
+
+  // bind switches
+  const sws = $$('#apage [data-sw]');
+  sws.forEach((b, idx) => {
+    // first switch is enabled, second is auto_complete
+    b.onclick = () => {
+      const on = b.dataset.sw !== '1';
+      b.dataset.sw = on ? '1' : '0'; b.classList.toggle('on', on);
+    };
+  });
+
+  $('#hSave').onclick = async () => {
+    const btn = $('#hSave'); btn.disabled = true;
+    const body = {
+      hamyon_enabled: sws[0] ? (sws[0].dataset.sw === '1' ? '1' : '0') : (enabled ? '1' : '0'),
+      hamyon_shop_id: $('#h_shop_id').value.trim(),
+      hamyon_shop_key: $('#h_shop_key').value.trim(),
+      hamyon_auto_complete: sws[1] ? (sws[1].dataset.sw === '1' ? '1' : '0') : '1',
+      hamyon_card_name: $('#h_card_name').value.trim() || 'HUMO/UZCARD',
+    };
+    try {
+      const r = await api('/api/admin/settings', { method: 'PUT', body });
+      S.settings = r.settings;
+      toast(t('s_saved')); pHamyon();
+    } catch { toast(t('t_err'), 'err'); btn.disabled = false; }
+  };
+
+  $('#hTest').onclick = async () => {
+    const btn = $('#hTest'); btn.disabled = true; btn.textContent = '…';
+    $('#hTestRes').innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div>`;
+    try {
+      const r = await api('/api/admin/hamyon/test', { method: 'POST' });
+      $('#hTestRes').innerHTML = `<div class="panel" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3)"><b>${esc(t('h_test_ok'))}</b><pre style="margin-top:8px;white-space:pre-wrap">${esc(JSON.stringify(r.response, null, 2))}</pre></div>`;
+      toast(t('h_test_ok'));
+    } catch (e) {
+      $('#hTestRes').innerHTML = `<div class="panel" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3)"><b>${esc(t('h_test_fail'))}</b><br>${esc(e.message||'error')}</div>`;
+      toast(t('t_err'), 'err');
+    }
+    btn.disabled = false; btn.textContent = t('h_test');
+  };
+
+  $$('#apage [data-copy]').forEach((b) => b.onclick = async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast(t('h_copied')); } catch { }
+  });
+
+  let deb;
+  $('#hQ').oninput = (e) => { clearTimeout(deb); deb = setTimeout(() => { S.hamyon.q = e.target.value; S.hamyon.page = 1; pHamyon(); }, 450); };
+  $('#hS').onchange = (e) => { S.hamyon.status = e.target.value; S.hamyon.page = 1; pHamyon(); };
+  $('#hPrev').onclick = () => { if (S.hamyon.page > 1) { S.hamyon.page--; pHamyon(); } };
+  $('#hNext').onclick = () => { if (S.hamyon.page < pages) { S.hamyon.page++; pHamyon(); } };
+}
+
 /* ---------------- SETTINGS ---------------- */
 async function pSettings() {
   loading();
@@ -659,7 +838,7 @@ async function pSettings() {
       <div class="panel"><h3>${esc(t('s_app'))}</h3><div class="sub">NEXORA</div>
         <div class="field"><label>${esc(t('s_app'))}</label><input id="s_app_name" value="${v('app_name')}"></div>
         <div class="field"><label>${esc(t('s_tag'))} (UZ)</label><input id="s_app_tagline_uz" value="${v('app_tagline_uz')}"></div>
-        <div class="field"><label>${esc(t('s_tag'))} (RU)</label><input id="s_app_tagline_ru" value="${v('app_tagline_ru')}"></div>
+        <div class="field"><label>${esc(t('s_tag'))} (RU)</label><input id="s_app_tagline_ru" value="${v('app_tagline_ru')}\"></div>
         <div class="field"><label>${esc(t('s_tag'))} (EN)</label><input id="s_app_tagline_en" value="${v('app_tagline_en')}"></div>
         <div class="field"><label>${esc(t('s_deflang'))}</label>
           <select id="s_default_lang">${['uz', 'ru', 'en'].map((l) => `<option value="${l}" ${d.default_lang === l ? 'selected' : ''}>${l.toUpperCase()}</option>`).join('')}</select></div>
@@ -686,16 +865,31 @@ async function pSettings() {
         <div class="field"><label>${esc(t('s_ann'))} (RU)</label><input id="s_announcement_ru" value="${v('announcement_ru')}"></div>
         <div class="field"><label>${esc(t('s_ann'))} (EN)</label><input id="s_announcement_en" value="${v('announcement_en')}"></div>
         <div class="field"><label>${esc(t('s_pass'))}</label><input type="password" id="s_admin_password" placeholder="${esc(t('s_pass_ph'))}" autocomplete="new-password"></div>
+        <div class="field" style="margin-top:12px;border-top:1px solid var(--stroke);padding-top:12px"><label>Hamyon — ${esc(t('h_title'))}</label>
+          <div class="field"><label>${esc(t('h_enabled'))}</label>${switchHtml(d.hamyon_enabled==='1')}</div>
+          <div class="field"><label>${esc(t('h_shop_id'))}</label><input id="s_hamyon_shop_id" value="${v('hamyon_shop_id')}" placeholder="shop_..."></div>
+          <div class="field"><label>${esc(t('h_shop_key'))}</label><input id="s_hamyon_shop_key" type="password" value="${v('hamyon_shop_key')}" placeholder="sk_..."></div>
+          <div class="field"><label>${esc(t('h_auto'))}</label>${switchHtml(d.hamyon_auto_complete==='1')}</div>
+          <div class="field"><label>${esc(t('h_card_name'))}</label><input id="s_hamyon_card_name" value="${v('hamyon_card_name')||'HUMO/UZCARD'}"></div>
+        </div>
       </div>
     </div>
     <div style="margin-top:14px"><button class="btn primary big rise" id="sSave">${esc(t('btn_save'))}</button></div>`;
   bindUploads($('#apage'));
+  bindSwitches($('#apage'));
   $('#sSave').onclick = async () => {
     const keys = ['app_name', 'app_tagline_uz', 'app_tagline_ru', 'app_tagline_en', 'logo_url', 'hero_banner_url',
       'support_username', 'support_text_uz', 'support_text_ru', 'support_text_en', 'default_lang',
-      'theme_primary', 'theme_accent', 'announcement_uz', 'announcement_ru', 'announcement_en'];
+      'theme_primary', 'theme_accent', 'announcement_uz', 'announcement_ru', 'announcement_en',
+      'hamyon_shop_id', 'hamyon_shop_key', 'hamyon_card_name'];
     const body = {};
-    keys.forEach((k) => { body[k] = $('#s_' + k).value; });
+    keys.forEach((k) => { const el = $('#s_' + k); if (el) body[k] = el.value; });
+    const sws = $$('#apage [data-sw]');
+    // switches: 0 = hamyon_enabled, 1 = hamyon_auto_complete (last two)
+    if (sws.length >= 2) {
+      body.hamyon_enabled = sws[sws.length-2].dataset.sw === '1' ? '1' : '0';
+      body.hamyon_auto_complete = sws[sws.length-1].dataset.sw === '1' ? '1' : '0';
+    }
     const np = $('#s_admin_password').value.trim();
     if (np) body.admin_password = np;
     const btn = $('#sSave'); btn.disabled = true;

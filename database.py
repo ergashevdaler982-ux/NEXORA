@@ -209,6 +209,25 @@ _SCHEMA_MYSQL = [
         skey VARCHAR(64) PRIMARY KEY,
         svalue TEXT DEFAULT ''
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS hamyon_payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        order_code VARCHAR(16) NOT NULL,
+        payment_id VARCHAR(64) NOT NULL UNIQUE,
+        shop_id VARCHAR(64) DEFAULT '',
+        amount DECIMAL(12,2) DEFAULT 0,
+        requested_amount DECIMAL(12,2) DEFAULT 0,
+        card VARCHAR(32) DEFAULT '',
+        status VARCHAR(16) DEFAULT 'pending',
+        expires_at DATETIME DEFAULT NULL,
+        raw_response TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_hamyon_order (order_id),
+        INDEX idx_hamyon_code (order_code),
+        INDEX idx_hamyon_status (status),
+        INDEX idx_hamyon_payid (payment_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
 ]
 
 _SCHEMA_SQLITE = [
@@ -295,12 +314,31 @@ _SCHEMA_SQLITE = [
         skey VARCHAR(64) PRIMARY KEY,
         svalue TEXT DEFAULT ''
     )""",
+    """CREATE TABLE IF NOT EXISTS hamyon_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        order_code VARCHAR(16) NOT NULL,
+        payment_id VARCHAR(64) NOT NULL UNIQUE,
+        shop_id VARCHAR(64) DEFAULT '',
+        amount NUMERIC DEFAULT 0,
+        requested_amount NUMERIC DEFAULT 0,
+        card VARCHAR(32) DEFAULT '',
+        status VARCHAR(16) DEFAULT 'pending',
+        expires_at DATETIME DEFAULT NULL,
+        raw_response TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""",
     "CREATE INDEX IF NOT EXISTS idx_pkg_game ON packages (game_id)",
     "CREATE INDEX IF NOT EXISTS idx_ord_user ON orders (user_id)",
     "CREATE INDEX IF NOT EXISTS idx_ord_tg ON orders (telegram_id)",
     "CREATE INDEX IF NOT EXISTS idx_ord_status ON orders (status)",
     "CREATE INDEX IF NOT EXISTS idx_ord_created ON orders (created_at)",
     "CREATE INDEX IF NOT EXISTS idx_hist_order ON order_history (order_id)",
+    "CREATE INDEX IF NOT EXISTS idx_hamyon_order ON hamyon_payments (order_id)",
+    "CREATE INDEX IF NOT EXISTS idx_hamyon_code ON hamyon_payments (order_code)",
+    "CREATE INDEX IF NOT EXISTS idx_hamyon_status ON hamyon_payments (status)",
+    "CREATE INDEX IF NOT EXISTS idx_hamyon_payid ON hamyon_payments (payment_id)",
 ]
 
 
@@ -381,6 +419,12 @@ _DEFAULT_SETTINGS = {
     "announcement_ru": "",
     "announcement_en": "",
     "admin_password": "",
+    # Hamyon API
+    "hamyon_enabled": "0",
+    "hamyon_shop_id": "",
+    "hamyon_shop_key": "",
+    "hamyon_auto_complete": "1",
+    "hamyon_card_name": "HUMO/UZCARD",
 }
 
 _SEED_GAMES = [

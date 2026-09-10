@@ -23,7 +23,12 @@ class Config:
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "5000"))
 
-    # --- MySQL (primary). Empty host => SQLite fallback ---
+    # --- Hamyon API (optional env override, primary is DB settings) ---
+    HAMYON_API_URL: str = os.getenv("HAMYON_API_URL", "https://hamyon-api.uz").rstrip("/")
+    HAMYON_SHOP_ID: str = os.getenv("HAMYON_SHOP_ID", "").strip()
+    HAMYON_SHOP_KEY: str = os.getenv("HAMYON_SHOP_KEY", "").strip()
+
+    # --- MySQL (primary). Empty host => SQLite fallback --
     MYSQL_HOST: str = os.getenv("MYSQL_HOST", "").strip()
     MYSQL_PORT: int = int(os.getenv("MYSQL_PORT", "3306"))
     MYSQL_USER: str = os.getenv("MYSQL_USER", "").strip()

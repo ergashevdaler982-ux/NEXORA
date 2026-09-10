@@ -1,11 +1,11 @@
 /* ============================================================
-   NEXORA WebApp — Soft UI • UZ / RU / EN • Telegram WebApp
+   NEXORA WebApp — Soft UI • UZ / RU / EN • Telegram WebApp + Hamyon
    ============================================================ */
 'use strict';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = (s) => String(s ?? '').replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[c]));
 const fmtMoney = (n) => Number(n || 0).toLocaleString('ru-RU');
 const fmtDate = (s) => { try { return new Date(String(s).replace(' ', 'T')).toLocaleString(S.lang === 'ru' ? 'ru-RU' : S.lang === 'en' ? 'en-US' : 'uz-UZ', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return s || ''; } };
 
@@ -47,6 +47,14 @@ const I18N = {
     v_file: 'Avval chek rasmini tanlang', v_method: 'To‘lov usulini tanlang',
     err_net: 'Internet xatosi. Qayta urining.', t_created: 'Buyurtma yaratildi!', t_receipt: 'Chek yuborildi!',
     pay_note: 'To‘lovdan so‘ng chekni yuklashni unutmang — aks holda buyurtma tekshirilmaydi.',
+    // Hamyon
+    hamyon_badge: 'AVTO', hamyon_title: 'Avtomatik to‘lov (Hamyon)', hamyon_sub: 'HUMO / UZCARD — 5-30 soniyada avtomatik tasdiqlanadi',
+    hamyon_card: 'Karta raqami', hamyon_amount: 'To‘lov summasi (aniq shu summani o‘tkazing)', hamyon_expires: 'Vaqt qoldi',
+    hamyon_wait: 'To‘lov kutilmoqda...', hamyon_paid: 'To‘lov tasdiqlandi! ✅', hamyon_cancel: 'To‘lov bekor qilindi yoki vaqti tugadi',
+    hamyon_create: 'Avto to‘lov yaratish', hamyon_pay: 'Shu kartaga o‘tkazing', hamyon_hint: 'Summani aniq kiriting, aks holda avtomatik aniqlanmaydi. 1-2 so‘m farq bo‘lishi mumkin — bu ataylab, bir xil summadagi to‘lovlar adashmasligi uchun.',
+    hamyon_timer: '5 daqiqa ichida to‘lang', hamyon_cancel_btn: 'Bekor qilish', hamyon_retry: 'Qayta urinish', hamyon_check: 'Holatni tekshirish',
+    hamyon_auto_note: 'Pul tushishi bilan buyurtma avtomatik tasdiqlanadi, chek yuklash shart emas!',
+    hamyon_processing: 'To‘lov qabul qilindi, buyurtma jarayonda',
   },
   ru: {
     nav_games: 'Игры', nav_orders: 'Заказы', nav_profile: 'Профиль', nav_support: 'Помощь',
@@ -84,6 +92,13 @@ const I18N = {
     v_file: 'Сначала выберите фото чека', v_method: 'Выберите способ оплаты',
     err_net: 'Ошибка сети. Попробуй ещё раз.', t_created: 'Заказ создан!', t_receipt: 'Чек отправлен!',
     pay_note: 'Не забудь загрузить чек после оплаты — иначе заказ не будет проверен.',
+    hamyon_badge: 'АВТО', hamyon_title: 'Автооплата (Hamyon)', hamyon_sub: 'HUMO / UZCARD — авто-подтверждение за 5-30 сек',
+    hamyon_card: 'Номер карты', hamyon_amount: 'Сумма (переведите точь-в-точь)', hamyon_expires: 'Осталось',
+    hamyon_wait: 'Ожидание оплаты...', hamyon_paid: 'Оплата подтверждена! ✅', hamyon_cancel: 'Платёж отменён или истёк',
+    hamyon_create: 'Создать авто-платёж', hamyon_pay: 'Переведите на эту карту', hamyon_hint: 'Укажите точную сумму, иначе не определится. 1-2 сум разницы может быть — это специально, чтобы не путать одинаковые суммы.',
+    hamyon_timer: 'Оплатите за 5 минут', hamyon_cancel_btn: 'Отменить', hamyon_retry: 'Повторить', hamyon_check: 'Проверить статус',
+    hamyon_auto_note: 'Как только деньги поступят, заказ автоматически подтвердится, чек не нужен!',
+    hamyon_processing: 'Платёж получен, заказ в работе',
   },
   en: {
     nav_games: 'Games', nav_orders: 'My Orders', nav_profile: 'Profile', nav_support: 'Support',
@@ -121,6 +136,13 @@ const I18N = {
     v_file: 'Choose the receipt photo first', v_method: 'Choose a payment method',
     err_net: 'Network error. Try again.', t_created: 'Order created!', t_receipt: 'Receipt sent!',
     pay_note: 'Don’t forget to upload the receipt after paying — otherwise the order won’t be verified.',
+    hamyon_badge: 'AUTO', hamyon_title: 'Auto payment (Hamyon)', hamyon_sub: 'HUMO / UZCARD — auto confirm in 5-30s',
+    hamyon_card: 'Card number', hamyon_amount: 'Amount (transfer exactly)', hamyon_expires: 'Time left',
+    hamyon_wait: 'Waiting for payment...', hamyon_paid: 'Payment confirmed! ✅', hamyon_cancel: 'Payment cancelled or expired',
+    hamyon_create: 'Create auto payment', hamyon_pay: 'Transfer to this card', hamyon_hint: 'Enter exact amount, otherwise it won’t be detected. 1-2 som difference may occur — intentional to avoid duplicate amounts.',
+    hamyon_timer: 'Pay within 5 minutes', hamyon_cancel_btn: 'Cancel', hamyon_retry: 'Retry', hamyon_check: 'Check status',
+    hamyon_auto_note: 'Once money arrives, order auto-confirms, no receipt needed!',
+    hamyon_processing: 'Payment received, order processing',
   },
 };
 
@@ -131,6 +153,7 @@ const S = {
   user: null, tg_id: null, settings: {}, games: [],
   tab: 'games', gameId: null, game: null, packages: [],
   orders: [], methods: [], buy: null, profile: null,
+  hamyon: { payment: null, timer: null, poll: null },
 };
 const t = (k) => (I18N[S.lang] && I18N[S.lang][k]) || I18N.uz[k] || k;
 const hap = (kind = 'light') => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(kind); } catch { } };
@@ -155,7 +178,7 @@ async function api(path, { method = 'GET', body = null, form = null } = {}) {
 function toast(msg, kind = '') {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  el.innerHTML = `<svg><use href="#${kind === 'err' ? 'i-x' : kind === 'ok' ? 'i-check' : 'i-spark'}"/></svg><span>${esc(msg)}</span>`;
+  el.innerHTML = `<svg><use href="#${kind === 'err' ? 'i-x' : kind === 'ok' ? 'i-check' : 'i-spark'}\"/></svg><span>${esc(msg)}</span>`;
   $('#toastRoot').appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, 2600);
 }
@@ -173,6 +196,9 @@ function openSheet(html, { onClose = null } = {}) {
 function closeSheet() {
   const ov = $('#sheetOv');
   if (ov) { ov.remove(); document.body.style.overflow = ''; if (ov._onClose) ov._onClose(); }
+  // cleanup hamyon timers
+  if (S.hamyon.timer) { clearInterval(S.hamyon.timer); S.hamyon.timer = null; }
+  if (S.hamyon.poll) { clearInterval(S.hamyon.poll); S.hamyon.poll = null; }
 }
 
 /* ---------------- theme / lang ---------------- */
@@ -250,7 +276,6 @@ async function boot() {
   setLang(S.lang, true);
   $('#langCode').textContent = S.lang.toUpperCase();
 
-  // auth
   const qs = new URLSearchParams(location.search);
   let authBody;
   if (tg && tg.initData) authBody = { init_data: tg.initData };
@@ -277,7 +302,7 @@ function bootFail() {
 }
 function bindChrome() {
   $$('#tabbar .tab').forEach((b) => b.addEventListener('click', () => {
-    hap(); S.tab = b.dataset.tab; S.gameId = null;
+    hap(); S.gameId = null;
     $$('#tabbar .tab').forEach((x) => x.classList.toggle('active', x === b));
     renderTab();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -392,7 +417,7 @@ function stepsBar(active) {
 }
 function startBuy(pkg) {
   if (!pkg) return;
-  S.buy = { pkg, game: S.game, order: null, methodIdx: 0, file: null };
+  S.buy = { pkg, game: S.game, order: null, methodIdx: 0, file: null, hamyon: null };
   buyInfoStep();
 }
 function buyInfoStep() {
@@ -435,14 +460,24 @@ async function buyPayStep() {
     <div class="pay-sum"><small>${esc(t('pay_amount'))}</small><b>${fmtMoney(order.price)} ${esc(order.currency)}</b>
     <span>${esc(order.game_name)} • ${esc(order.package_name)} (${esc(order.package_amount)})</span></div>
     <div id="pmList"><div class="sk" style="height:70px"></div><div class="sk" style="height:70px;margin-top:10px"></div></div>
-    <div class="sheet-foot"><button class="btn primary" id="toRc">${esc(t('pay_go'))}</button></div>`);
+    <div class="sheet-foot" style="flex-direction:column;gap:10px">
+      ${S.settings.hamyon_enabled ? `<button class="btn primary block" id="hamyonBtn" style="background:linear-gradient(135deg,#38bdf8,#1d4ed8)"><svg class="ic" style="width:18px;height:18px"><use href="#i-bolt"/></svg> ${esc(t('hamyon_create'))} — ${esc(t('hamyon_badge'))}</button>` : ''}
+      <button class="btn ghost block" id="toRc">${esc(t('pay_go'))}</button>
+    </div>`);
   try { S.methods = (await api('/api/payment-methods')).methods; } catch { S.methods = []; }
   const box = $('#pmList');
   if (!box) return;
-  if (!S.methods.length) box.innerHTML = `<div class="empty"><b>…</b></div>`;
-  box.innerHTML = `<div class="sec-head" style="margin-top:2px"><div><h2 style="font-size:15px">${esc(t('pay_choose'))}</h2></div></div>` +
+  let html = '';
+  if (S.settings.hamyon_enabled) {
+    html += `<div class="pay-method sel" data-hamyon="1" style="border:2px solid var(--accent);background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(29,78,216,.15))">
+      <div class="pm-top"><span class="pm-ic" style="background:linear-gradient(135deg,#38bdf8,#1d4ed8);color:#fff"><svg><use href="#i-bolt"/></svg></span><b>${esc(t('hamyon_title'))} <span class="pkg-bonus" style="margin-left:6px">${esc(t('hamyon_badge'))}</span></b>
+        <span class="pm-check"><svg><use href="#i-check"/></svg></span></div>
+      <div class="pm-inst">${esc(t('hamyon_sub'))}<br><small style="color:var(--accent)">${esc(t('hamyon_auto_note'))}</small></div>
+    </div>`;
+  }
+  html += `<div class="sec-head" style="margin-top:12px"><div><h2 style="font-size:15px">${esc(t('pay_choose'))}</h2></div></div>` +
     S.methods.map((m, i) => `
-    <div class="pay-method ${i === S.buy.methodIdx ? 'sel' : ''}" data-pm="${i}">
+    <div class="pay-method ${!S.settings.hamyon_enabled && i === S.buy.methodIdx ? 'sel' : ''}" data-pm="${i}">
       <div class="pm-top"><span class="pm-ic"><svg><use href="#i-card"/></svg></span><b>${esc(m.name)}</b>
         <span class="pm-check"><svg><use href="#i-check"/></svg></span></div>
       <div class="pm-details">${esc(m.details || '').replace(/\n/g, '<br>')}
@@ -450,11 +485,24 @@ async function buyPayStep() {
       ${m['instructions_' + S.lang] ? `<div class="pm-inst">${esc(m['instructions_' + S.lang])}</div>` : ''}
     </div>`).join('') +
     `<div class="secure-note"><svg><use href="#i-clock"/></svg><span>${esc(t('pay_note'))}</span></div>`;
+  box.innerHTML = html;
+
+  let hamyonSelected = !!S.settings.hamyon_enabled;
   $$('#pmList [data-pm]').forEach((el) => el.addEventListener('click', (e) => {
     if (e.target.closest('.pm-copy')) return;
-    hap(); S.buy.methodIdx = +el.dataset.pm;
-    $$('#pmList [data-pm]').forEach((x) => x.classList.toggle('sel', x === el));
+    hap(); hamyonSelected = false;
+    S.buy.methodIdx = +el.dataset.pm;
+    $$('#pmList [data-pm]').forEach((x) => x.classList.remove('sel'));
+    const hm = $('#pmList [data-hamyon]'); if (hm) hm.classList.remove('sel');
+    el.classList.add('sel');
   }));
+  const hmEl = $('#pmList [data-hamyon]');
+  if (hmEl) hmEl.addEventListener('click', () => {
+    hap(); hamyonSelected = true;
+    $$('#pmList [data-pm]').forEach((x) => x.classList.remove('sel'));
+    hmEl.classList.add('sel');
+  });
+
   $$('#pmList [data-copy]').forEach((b) => b.addEventListener('click', async (e) => {
     e.stopPropagation(); hap();
     const txt = b.dataset.copy;
@@ -464,11 +512,141 @@ async function buyPayStep() {
     }
     toast(t('copied'), 'ok');
   }));
+
   $('#toRc').onclick = () => {
+    if (hamyonSelected) {
+      hap(); buyHamyonStep();
+      return;
+    }
     if (!S.methods.length) { toast(t('v_method'), 'err'); hapOk('error'); return; }
     hap(); buyReceiptStep();
   };
+  const hb = $('#hamyonBtn');
+  if (hb) hb.onclick = () => { hap('medium'); buyHamyonStep(); };
 }
+
+async function buyHamyonStep() {
+  const { order } = S.buy;
+  openSheet(`
+    <div class="sheet-head"><h3>${esc(t('hamyon_title'))}</h3>
+      <button class="x-btn" onclick="closeSheet()"><svg><use href="#i-x"/></svg></button></div>
+    ${stepsBar(3)}
+    <div class="pay-sum"><small>${esc(t('pay_amount'))}</small><b>${fmtMoney(order.price)} ${esc(order.currency)}</b>
+    <span>${esc(order.game_name)} • ${esc(order.package_name)} (${esc(order.package_amount)})</span></div>
+    <div id="hamyonBox"><div class="sk" style="height:140px"></div></div>
+    <p class="form-err" id="hamyonErr" hidden></p>
+    <div class="sheet-foot" style="flex-direction:column;gap:10px">
+      <button class="btn ghost block" id="hamyonCancel">${esc(t('hamyon_cancel_btn'))}</button>
+      <button class="btn ghost block" id="toManual">${esc(t('rc_title'))} — manual</button>
+    </div>
+  `);
+
+  $('#hamyonCancel').onclick = async () => {
+    try { await api('/api/hamyon/cancel/' + order.order_code, { method: 'POST' }); } catch {}
+    hap(); buyPayStep();
+  };
+  $('#toManual').onclick = () => { hap(); buyReceiptStep(); };
+
+  // create payment
+  const errEl = $('#hamyonErr');
+  const box = $('#hamyonBox');
+  try {
+    const res = await api('/api/hamyon/create', { method: 'POST', body: { order_code: order.order_code } });
+    const hp = res.hamyon;
+    S.buy.hamyon = hp;
+    renderHamyonPayment(hp);
+    startHamyonPolling(order.order_code);
+  } catch (e) {
+    errEl.textContent = e.message.includes('hamyon') ? e.message : t('err_net');
+    errEl.hidden = false;
+    box.innerHTML = `<div class="empty"><b>${esc(t('err_net'))}</b><p>${esc(e.message)}</p><button class="btn primary" id="retryHamyon" style="margin-top:12px">${esc(t('hamyon_retry'))}</button></div>`;
+    const rb = $('#retryHamyon');
+    if (rb) rb.onclick = () => buyHamyonStep();
+  }
+}
+
+function renderHamyonPayment(hp) {
+  const box = $('#hamyonBox');
+  if (!box) return;
+  const card = hp.card || '8600 **** **** ****';
+  const amount = hp.amount || hp.requested_amount;
+  const expiresAt = hp.expires_at ? new Date(hp.expires_at.replace(' ', 'T')) : new Date(Date.now() + 5*60*1000);
+  const now = new Date();
+  const diffSec = Math.max(0, Math.floor((expiresAt - now) / 1000));
+
+  box.innerHTML = `
+    <div class="pay-method sel" style="border:2px solid #38bdf8;background:linear-gradient(135deg,rgba(56,189,248,.12),rgba(29,78,216,.12))">
+      <div class="pm-top"><span class="pm-ic" style="background:linear-gradient(135deg,#38bdf8,#1d4ed8);color:#fff"><svg><use href="#i-bolt"/></svg></span><b>${esc(t('hamyon_pay'))}</b></div>
+      <div style="margin-top:12px">
+        <div class="kv"><span>${esc(t('hamyon_card'))}</span><b style="font-size:18px;letter-spacing:1px">${esc(card)} <button class="pm-copy" data-copy="${esc(card)}" style="margin-left:8px"><svg style="width:16px;height:16px"><use href="#i-copy"/></svg></button></b></div>
+        <div class="kv"><span>${esc(t('hamyon_amount'))}</span><b style="font-size:22px;color:var(--accent)">${fmtMoney(amount)} UZS</b></div>
+        <div class="kv"><span>${esc(t('hamyon_expires'))}</span><b id="hamyonTimer" style="font-size:18px">${Math.floor(diffSec/60)}:${String(diffSec%60).padStart(2,'0')}</b></div>
+      </div>
+      <div class="pm-inst" style="margin-top:12px">${esc(t('hamyon_hint'))}</div>
+      <div class="secure-note" style="margin-top:12px"><svg><use href="#i-clock"/></svg><span>${esc(t('hamyon_auto_note'))}</span></div>
+      <div id="hamyonStatus" style="margin-top:14px;text-align:center"><span class="st st-pending" style="font-size:13px;padding:8px 14px">${esc(t('hamyon_wait'))}</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+        <span class="hbadge" style="background:rgba(56,189,248,.15)"><svg class="pulse" style="width:14px;height:14px"><use href="#i-bolt"/></svg>${esc(t('hamyon_timer'))}</span>
+      </div>
+    </div>
+  `;
+
+  // copy handlers
+  $$('#hamyonBox [data-copy]').forEach((b) => b.onclick = async (e) => {
+    e.stopPropagation();
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast(t('copied'), 'ok'); hap(); } catch {}
+  });
+
+  // timer
+  if (S.hamyon.timer) clearInterval(S.hamyon.timer);
+  S.hamyon.timer = setInterval(() => {
+    const el = $('#hamyonTimer');
+    if (!el) { clearInterval(S.hamyon.timer); return; }
+    const now2 = new Date();
+    const sec = Math.max(0, Math.floor((expiresAt - now2) / 1000));
+    el.textContent = `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+    if (sec <= 0) {
+      clearInterval(S.hamyon.timer);
+      const st = $('#hamyonStatus');
+      if (st) st.innerHTML = `<span class="st st-cancelled" style="font-size:13px;padding:8px 14px">${esc(t('hamyon_cancel'))}</span><br><button class="btn primary" id="retryHamyon2" style="margin-top:12px">${esc(t('hamyon_retry'))}</button>`;
+      const r2 = $('#retryHamyon2');
+      if (r2) r2.onclick = () => buyHamyonStep();
+    }
+  }, 1000);
+}
+
+function startHamyonPolling(orderCode) {
+  if (S.hamyon.poll) clearInterval(S.hamyon.poll);
+  S.hamyon.poll = setInterval(async () => {
+    try {
+      const res = await api('/api/hamyon/status/' + orderCode);
+      const hp = res.hamyon;
+      const ord = res.order;
+      if (!hp) return;
+      if (hp.status === 'paid' || ord.status === 'paid' || ord.status === 'processing' || ord.status === 'completed') {
+        clearInterval(S.hamyon.poll);
+        clearInterval(S.hamyon.timer);
+        const st = $('#hamyonStatus');
+        if (st) st.innerHTML = `<span class="st st-paid" style="font-size:13px;padding:8px 14px">${esc(t('hamyon_paid'))}</span>`;
+        hapOk();
+        setTimeout(() => {
+          S.buy.order = ord;
+          buyDoneStep(true);
+        }, 800);
+      } else if (hp.status === 'cancelled') {
+        clearInterval(S.hamyon.poll);
+        clearInterval(S.hamyon.timer);
+        const st = $('#hamyonStatus');
+        if (st) st.innerHTML = `<span class="st st-cancelled" style="font-size:13px;padding:8px 14px">${esc(t('hamyon_cancel'))}</span><br><button class="btn primary" id="retryHamyon3" style="margin-top:12px">${esc(t('hamyon_retry'))}</button>`;
+        const r3 = $('#retryHamyon3');
+        if (r3) r3.onclick = () => buyHamyonStep();
+      }
+    } catch (e) {
+      // ignore polling errors
+    }
+  }, 3000);
+}
+
 function buyReceiptStep() {
   S.buy.file = null;
   openSheet(`
@@ -510,12 +688,12 @@ function buyReceiptStep() {
   };
   $('#laterRc').onclick = () => { hap(); closeSheet(); setTab('orders'); renderTab(); };
 }
-function buyDoneStep() {
+function buyDoneStep(isHamyon = false) {
   const o = S.buy.order;
   openSheet(`${stepsBar(5)}
     <div class="done-wrap pop">
       <div class="done-ring"><svg><use href="#i-check"/></svg></div>
-      <h3>${esc(t('done_title'))}</h3><p>${esc(t('done_sub'))}</p>
+      <h3>${esc(isHamyon ? t('hamyon_paid') : t('done_title'))}</h3><p>${esc(isHamyon ? t('hamyon_processing') : t('done_sub'))}</p>
       <div><span class="done-code">${esc(o.order_code)}</span></div>
     </div>
     <div class="sheet-foot"><button class="btn ghost" id="dMenu">${esc(t('done_menu'))}</button>
@@ -542,11 +720,11 @@ async function vOrders() {
     S.orders.map((o, i) => `
     <div class="order rise rise-${(i % 5) + 1}" data-ord="${esc(o.order_code)}">
       <div class="o-top">${coinSVG({ code: '', name: o.game_name, currency_name: o.currency_name }, 'o-coin')}
-        <div class="o-info"><span class="o-code">${esc(o.order_code)}</span>
+        <div class="o-info"><span class="o-code">${esc(o.order_code)} ${o.hamyon_status ? `<span style="font-size:9px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:6px;margin-left:4px">${esc(t('hamyon_badge'))}</span>` : ''}</span>
           <b>${esc(o.game_name)} • ${esc(o.package_name)}</b>
-          <small>${esc(o.package_amount || '')} • ${esc(o.game_username || '')}</small></div>
+          <small>${esc(o.package_amount || '')} • ${esc(o.game_username || '')} ${o.hamyon_status ? `• ${esc(o.hamyon_status)} ${o.hamyon_card ? esc(o.hamyon_card) : ''}` : ''}</small></div>
         <span class="st st-${esc(o.status)}">${esc(t('st_' + o.status))}</span></div>
-      <div class="o-bottom"><span class="o-price">${fmtMoney(o.price)} ${esc(o.currency)}</span>
+      <div class="o-bottom"><span class="o-price">${fmtMoney(o.hamyon_amount || o.price)} ${esc(o.currency)}</span>
         <span class="o-date">${esc(fmtDate(o.created_at))}</span></div>
     </div>`).join('');
   $$('#view [data-ord]').forEach((el) => el.addEventListener('click', () => { hap(); orderSheet(el.dataset.ord); }));
@@ -555,7 +733,7 @@ async function orderSheet(code) {
   openSheet(`<div class="sk" style="height:220px"></div>`);
   let d;
   try { d = await api('/api/orders/' + encodeURIComponent(code)); } catch { closeSheet(); toast(t('err_net'), 'err'); return; }
-  const o = d.order, h = d.history || [];
+  const o = d.order, h = d.history || [], hamyon = d.hamyon_payments || [];
   const tl = h.length ? `<ul class="tl">${h.map((x) => `
     <li class="${x.new_status === o.status ? 'on' : ''}">${esc(t('st_' + (x.new_status || 'pending')))}
     <small>${esc(fmtDate(x.created_at))}${x.note ? ' • ' + esc(x.note) : ''}</small></li>`).join('')}</ul>`
@@ -570,10 +748,19 @@ async function orderSheet(code) {
     <div class="kv"><span>${esc(t('d_price'))}</span><b>${fmtMoney(o.price)} ${esc(o.currency)}</b></div>
     <div class="kv"><span>${esc(t('d_date'))}</span><b>${esc(fmtDate(o.created_at))}</b></div>
     ${o.admin_note ? `<div class="kv"><span>${esc(t('d_note'))}</span><b>${esc(o.admin_note)}</b></div>` : ''}
+    ${hamyon.length ? `<div class="sec-head" style="margin-top:14px"><div><h2 style="font-size:15px">${esc(t('hamyon_title'))}</h2></div></div>
+      ${hamyon.map((hp) => `<div class="pay-method sel" style="margin-bottom:10px">
+        <div class="pm-top"><b>${esc(hp.payment_id)}</b> <span class="st st-${esc(hp.status)}">${esc(hp.status)}</span></div>
+        <div class="kv"><span>${esc(t('hamyon_card'))}</span><b>${esc(hp.card)}</b></div>
+        <div class="kv"><span>${esc(t('hamyon_amount'))}</span><b>${fmtMoney(hp.amount)} (req ${fmtMoney(hp.requested_amount)})</b></div>
+        <div class="kv"><span>${esc(t('hamyon_expires'))}</span><b>${esc(fmtDate(hp.expires_at))}</b></div>
+      </div>`).join('')}` : ''}
     ${o.receipt_url ? `<img class="receipt-img" src="${esc(o.receipt_url)}" alt="receipt" loading="lazy">` : ''}
     <div class="sec-head" style="margin-top:14px"><div><h2 style="font-size:15px">${esc(t('d_history'))}</h2></div></div>
     ${tl}
-    ${o.status === 'pending' ? `<div class="sheet-foot"><button class="btn primary block" id="reUp">${esc(o.receipt_url ? t('d_reupload') : t('rc_title'))}</button></div>
+    ${o.status === 'pending' ? `<div class="sheet-foot" style="flex-direction:column;gap:8px">
+      ${S.settings.hamyon_enabled && !hamyon.some((hp)=>hp.status==='paid') ? `<button class="btn primary block" id="payHamyon" style="background:linear-gradient(135deg,#38bdf8,#1d4ed8)">${esc(t('hamyon_create'))}</button>` : ''}
+      <button class="btn primary block" id="reUp">${esc(o.receipt_url ? t('d_reupload') : t('rc_title'))}</button></div>
     <input type="file" id="reFile" accept="image/jpeg,image/png,image/webp" hidden>` : ''}`);
   const re = $('#reUp');
   if (re) re.onclick = () => $('#reFile').click();
@@ -584,6 +771,11 @@ async function orderSheet(code) {
     const fd = new FormData(); fd.append('receipt', rf.files[0]);
     try { await api(`/api/orders/${o.order_code}/receipt`, { method: 'POST', form: fd }); hapOk(); toast(t('t_receipt'), 'ok'); orderSheet(code); vOrders(); }
     catch { re.disabled = false; toast(t('err_net'), 'err'); hapOk('error'); }
+  };
+  const payH = $('#payHamyon');
+  if (payH) payH.onclick = () => {
+    S.buy = { pkg: null, game: d.game, order: o, methodIdx: 0, file: null, hamyon: null };
+    buyHamyonStep();
   };
 }
 
