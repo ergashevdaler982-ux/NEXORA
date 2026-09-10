@@ -1,4 +1,4 @@
-"""NEXORA Flask application: Telegram WebApp + Admin panel + REST API."""
+"""NEXORA Flask application: Telegram WebApp + Admin panel + REST API + Hamyon API."""
 from __future__ import annotations
 
 import hashlib
@@ -9,6 +9,7 @@ import os
 import secrets
 import time
 import urllib.parse
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Flask, jsonify, render_template, request, send_from_directory, session
@@ -188,6 +189,13 @@ def _page_args(default_per=20, max_per=100):
     return page, per
 
 
+def _hamyon_shop_credentials():
+    """Return (shop_id, shop_key) from DB settings or env fallback."""
+    shop_id = db.get_setting("hamyon_shop_id", "") or Config.HAMYON_SHOP_ID
+    shop_key = db.get_setting("hamyon_shop_key", "") or Config.HAMYON_SHOP_KEY
+    return shop_id.strip(), shop_key.strip()
+
+
 # ---------------------------------------------------------------- routes
 def register_routes(app: Flask) -> None:
 
@@ -209,7 +217,7 @@ def register_routes(app: Flask) -> None:
 
     @app.get("/api/health")
     def health():
-        return jsonify({"ok": True, "dialect": db.dialect()})
+        return jsonify({"ok": True, "dialect": db.dialect(), "hamyon": db.get_setting("hamyon_enabled", "0") == "1"})
 
     # ---------------- auth (user) ----------------
     @app.post("/api/auth")
@@ -250,8 +258,12 @@ def register_routes(app: Flask) -> None:
                 "logo_url", "hero_banner_url", "support_username",
                 "support_text_uz", "support_text_ru", "support_text_en",
                 "default_lang", "theme_primary", "theme_accent",
-                "announcement_uz", "announcement_ru", "announcement_en")
-        return jsonify({"ok": True, "settings": {k: db.get_setting(k, "") for k in keys}})
+                "announcement_uz", "announcement_ru", "announcement_en",
+                "hamyon_enabled", "hamyon_card_name")
+        settings = {k: db.get_setting(k, "") for k in keys}
+        # Normalize enabled to bool
+        settings["hamyon_enabled"] = settings.get("hamyon_enabled", "0") == "1"
+        return jsonify({"ok": True, "settings": settings})
 
     @app.get("/api/games")
     def api_games():
@@ -339,7 +351,10 @@ def register_routes(app: Flask) -> None:
         if err:
             return err
         orders = db.fetchall(
-            """SELECT o.*, g.image_url AS game_image, g.currency_name, g.color_from, g.color_to
+            """SELECT o.*, g.image_url AS game_image, g.currency_name, g.color_from, g.color_to,
+                      (SELECT hp.status FROM hamyon_payments hp WHERE hp.order_code = o.order_code ORDER BY hp.id DESC LIMIT 1) AS hamyon_status,
+                      (SELECT hp.card FROM hamyon_payments hp WHERE hp.order_code = o.order_code ORDER BY hp.id DESC LIMIT 1) AS hamyon_card,
+                      (SELECT hp.amount FROM hamyon_payments hp WHERE hp.order_code = o.order_code ORDER BY hp.id DESC LIMIT 1) AS hamyon_amount
                FROM orders o LEFT JOIN games g ON g.id = o.game_id
                WHERE o.user_id = %s ORDER BY o.id DESC LIMIT 100""",
             (user["id"],))
@@ -358,7 +373,8 @@ def register_routes(app: Flask) -> None:
         history = db.fetchall(
             "SELECT * FROM order_history WHERE order_id = %s ORDER BY id", (order["id"],))
         game = db.fetchone("SELECT * FROM games WHERE id = %s", (order["game_id"],))
-        return jsonify({"ok": True, "order": order, "history": history, "game": game})
+        hamyon = db.fetchall("SELECT * FROM hamyon_payments WHERE order_code = %s ORDER BY id DESC", (code,))
+        return jsonify({"ok": True, "order": order, "history": history, "game": game, "hamyon_payments": hamyon})
 
     @app.post("/api/orders/<code>/receipt")
     def api_upload_receipt(code: str):
@@ -384,6 +400,307 @@ def register_routes(app: Flask) -> None:
             f"<b>Chek yuklandi / Загружен чек</b>\nID: <b>{code}</b>\n"
             f"Summa: <b>{order['price']} {order['currency']}</b>")
         return jsonify({"ok": True, "order": order})
+
+    # ---------------- Hamyon API (user) ----------------
+    @app.post("/api/hamyon/create")
+    def api_hamyon_create():
+        user, err = _require_user()
+        if err:
+            return err
+        data = request.get_json(silent=True) or {}
+        order_code = str(data.get("order_code", "")).strip()
+        if not order_code:
+            return _err("order_code_required")
+        order = db.fetchone("SELECT * FROM orders WHERE order_code = %s", (order_code,))
+        if not order or order["user_id"] != user["id"]:
+            return _err("not_found", 404)
+        if order["status"] in ("completed", "cancelled"):
+            return _err("order_closed")
+
+        if db.get_setting("hamyon_enabled", "0") != "1":
+            return _err("hamyon_disabled")
+
+        shop_id, shop_key = _hamyon_shop_credentials()
+        if not shop_id or not shop_key:
+            return _err("hamyon_not_configured")
+
+        # Check existing pending hamyon payment for this order
+        existing = db.fetchone(
+            "SELECT * FROM hamyon_payments WHERE order_code = %s AND status = 'pending' AND expires_at > %s ORDER BY id DESC",
+            (order_code, db.now_str()),
+        )
+        if existing:
+            return jsonify({"ok": True, "hamyon": existing, "reused": True})
+
+        # Create via Hamyon API
+        import hamyon as hm
+        try:
+            ok, resp = hm.create_payment(shop_id, shop_key, int(float(order["price"])), order_code)
+        except Exception as exc:
+            log.exception("Hamyon create exception")
+            return _err(f"hamyon_error: {exc}", 500)
+
+        if not ok:
+            log.warning("Hamyon create failed: %s", resp)
+            return jsonify({"ok": False, "error": "hamyon_create_failed", "details": resp}), 400
+
+        # resp contains payment_id, card, amount, expires_in, expire_at, etc.
+        payment_id = str(resp.get("payment_id", ""))
+        card = str(resp.get("card", ""))
+        amount = int(resp.get("amount", resp.get("actual_amount", order["price"])))
+        requested = int(resp.get("requested_amount", order["price"]))
+        expires_in = int(resp.get("expires_in", 300))
+        expire_at_ts = resp.get("expire_at")
+        if expire_at_ts:
+            try:
+                expires_at = datetime.fromtimestamp(int(expire_at_ts)).strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                expires_at = (datetime.now() + timedelta(seconds=expires_in)).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            expires_at = (datetime.now() + timedelta(seconds=expires_in)).strftime("%Y-%m-%d %H:%M:%S")
+
+        # Save to DB
+        try:
+            db.execute(
+                """INSERT INTO hamyon_payments
+                   (order_id, order_code, payment_id, shop_id, amount, requested_amount, card, status, expires_at, raw_response, created_at, updated_at)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,'pending',%s,%s,%s,%s)""",
+                (order["id"], order_code, payment_id, shop_id, amount, requested, card,
+                 expires_at, json.dumps(resp, ensure_ascii=False)[:2000], db.now_str(), db.now_str()),
+            )
+        except Exception as exc:
+            # If duplicate payment_id (should not), try to fetch existing
+            log.error("Hamyon DB insert failed: %s", exc)
+            existing2 = db.fetchone("SELECT * FROM hamyon_payments WHERE payment_id = %s", (payment_id,))
+            if existing2:
+                return jsonify({"ok": True, "hamyon": existing2, "reused": True})
+            return _err("db_error", 500)
+
+        hamyon_row = db.fetchone("SELECT * FROM hamyon_payments WHERE payment_id = %s", (payment_id,))
+        return jsonify({"ok": True, "hamyon": hamyon_row})
+
+    @app.get("/api/hamyon/status/<code>")
+    def api_hamyon_status(code: str):
+        user, err = _require_user()
+        if err and not session.get("is_admin"):
+            return err
+        order = db.fetchone("SELECT * FROM orders WHERE order_code = %s", (code,))
+        if not order:
+            return _err("not_found", 404)
+        if not session.get("is_admin") and order["user_id"] != (user or {}).get("id"):
+            return _err("forbidden", 403)
+
+        hamyon = db.fetchone(
+            "SELECT * FROM hamyon_payments WHERE order_code = %s ORDER BY id DESC",
+            (code,),
+        )
+        if not hamyon:
+            return jsonify({"ok": True, "hamyon": None, "order": order})
+
+        # Optionally refresh from Hamyon API if pending and expired check
+        # We rely on webhook, but also allow polling via Hamyon status API for extra safety
+        if hamyon["status"] == "pending":
+            # Check if expired locally
+            try:
+                exp = datetime.strptime(hamyon["expires_at"], "%Y-%m-%d %H:%M:%S")
+                if datetime.now() > exp:
+                    db.execute(
+                        "UPDATE hamyon_payments SET status = 'cancelled', updated_at = %s WHERE id = %s",
+                        (db.now_str(), hamyon["id"]),
+                    )
+                    hamyon["status"] = "cancelled"
+            except Exception:
+                pass
+
+        return jsonify({"ok": True, "hamyon": hamyon, "order": order})
+
+    @app.post("/api/hamyon/cancel/<code>")
+    def api_hamyon_cancel(code: str):
+        user, err = _require_user()
+        if err:
+            return err
+        order = db.fetchone("SELECT * FROM orders WHERE order_code = %s", (code,))
+        if not order or order["user_id"] != user["id"]:
+            return _err("not_found", 404)
+
+        hamyon = db.fetchone(
+            "SELECT * FROM hamyon_payments WHERE order_code = %s AND status = 'pending' ORDER BY id DESC",
+            (code,),
+        )
+        if not hamyon:
+            return _err("no_pending_payment")
+
+        shop_id, shop_key = _hamyon_shop_credentials()
+        if shop_id and shop_key:
+            import hamyon as hm
+            try:
+                hm.cancel_payment(hamyon["payment_id"], shop_id, shop_key)
+            except Exception:
+                pass
+
+        db.execute(
+            "UPDATE hamyon_payments SET status = 'cancelled', updated_at = %s WHERE id = %s",
+            (db.now_str(), hamyon["id"]),
+        )
+        return jsonify({"ok": True})
+
+    # ---------------- Hamyon webhooks (public, no auth, but signature checked) ----------------
+    def _parse_hamyon_callback_data():
+        """Parse callback from Hamyon: supports form and json."""
+        if request.is_json:
+            d = request.get_json(silent=True) or {}
+        else:
+            d = request.form.to_dict() if request.form else {}
+            # also check json in raw?
+            if not d:
+                try:
+                    d = json.loads(request.data.decode() or "{}")
+                except Exception:
+                    d = {}
+        # Normalize keys
+        # Expected: shop_id, payment_id, order_id, amount, status, sign, reason?
+        return {
+            "shop_id": str(d.get("shop_id", "")).strip(),
+            "payment_id": str(d.get("payment_id", "")).strip(),
+            "order_id": str(d.get("order_id", "")).strip(),
+            "amount": str(d.get("amount", "")).strip(),
+            "status": str(d.get("status", "")).strip().lower(),
+            "sign": str(d.get("sign", "")).strip(),
+            "reason": str(d.get("reason", "")).strip(),
+            "raw": d,
+        }
+
+    def _handle_hamyon_callback():
+        data = _parse_hamyon_callback_data()
+        log.info("Hamyon callback received: %s", data)
+
+        shop_id = data["shop_id"]
+        payment_id = data["payment_id"]
+        order_id = data["order_id"]  # our order_code
+        amount = data["amount"]
+        status = data["status"]
+        sign = data["sign"]
+
+        if not payment_id or not shop_id:
+            return jsonify({"ok": False, "error": "missing_params"}), 400
+
+        # Load shop_key for verification
+        _, shop_key = _hamyon_shop_credentials()
+        # Also check if shop_id matches configured
+        cfg_shop_id, _ = _hamyon_shop_credentials()
+        if cfg_shop_id and shop_id != cfg_shop_id:
+            log.warning("Hamyon callback shop_id mismatch: %s vs %s", shop_id, cfg_shop_id)
+            # Allow if shop_key still verifies? We'll still verify sign with our key
+            # If mismatch, reject
+            # return jsonify({"ok": False, "error": "shop_mismatch"}), 400
+            pass
+
+        if shop_key:
+            if not sign:
+                log.warning("Hamyon callback missing sign")
+                return jsonify({"ok": False, "error": "missing_sign"}), 400
+            # Verify sign: md5(shop_id + payment_id + amount + shop_key)
+            # amount might be int string, use as received
+            if not hmac.compare_digest(
+                hashlib.md5(f"{shop_id}{payment_id}{amount}{shop_key}".encode()).hexdigest().lower(),
+                sign.lower(),
+            ):
+                # Try with amount as int (strip spaces)
+                try:
+                    amt_int = str(int(float(amount)))
+                    alt_sign = hashlib.md5(f"{shop_id}{payment_id}{amt_int}{shop_key}".encode()).hexdigest()
+                    if alt_sign.lower() != sign.lower():
+                        log.warning("Hamyon sign invalid for payment %s", payment_id)
+                        return jsonify({"ok": False, "error": "invalid_sign"}), 400
+                except Exception:
+                    log.warning("Hamyon sign invalid for payment %s", payment_id)
+                    return jsonify({"ok": False, "error": "invalid_sign"}), 400
+
+        # Find hamyon payment
+        hp = db.fetchone("SELECT * FROM hamyon_payments WHERE payment_id = %s", (payment_id,))
+        if not hp:
+            # Try by order_code
+            if order_id:
+                hp = db.fetchone(
+                    "SELECT * FROM hamyon_payments WHERE order_code = %s ORDER BY id DESC", (order_id,)
+                )
+        if not hp:
+            log.warning("Hamyon payment not found: %s", payment_id)
+            return jsonify({"ok": False, "error": "payment_not_found"}), 404
+
+        # Update hamyon status
+        new_hp_status = "pending"
+        if status == "paid":
+            new_hp_status = "paid"
+        elif status in ("cancel", "cancelled", "expired", "timeout"):
+            new_hp_status = "cancelled"
+        elif status in ("prepare", "pending", "waiting"):
+            new_hp_status = "pending"
+
+        # Avoid downgrading paid
+        if hp["status"] == "paid" and new_hp_status != "paid":
+            log.info("Hamyon payment %s already paid, ignoring %s", payment_id, status)
+            return jsonify({"ok": True, "ignored": True})
+
+        db.execute(
+            "UPDATE hamyon_payments SET status = %s, updated_at = %s WHERE id = %s",
+            (new_hp_status, db.now_str(), hp["id"]),
+        )
+
+        # Handle order status
+        order = db.fetchone("SELECT * FROM orders WHERE order_code = %s", (hp["order_code"],))
+        if not order:
+            log.warning("Order not found for hamyon payment %s", payment_id)
+            return jsonify({"ok": True})
+
+        if status == "paid":
+            if order["status"] == "pending":
+                auto_complete = db.get_setting("hamyon_auto_complete", "1") == "1"
+                new_status = "paid" if auto_complete else "paid"
+                db.execute(
+                    "UPDATE orders SET status = %s, updated_at = %s WHERE id = %s",
+                    (new_status, db.now_str(), order["id"]),
+                )
+                _add_history(order["id"], order["status"], new_status, "hamyon", f"Hamyon paid: {payment_id} amount {amount}")
+                # Notify
+                import bot as tg
+                user = db.fetchone("SELECT * FROM users WHERE id = %s", (order["user_id"],))
+                tg.notify_user_status(order["telegram_id"], order["order_code"], new_status,
+                                      (user or {}).get("language", "uz"))
+                tg.notify_admin(
+                    f"<b>Hamyon to'lov tasdiqlandi ✅</b>\nID: <b>{order['order_code']}</b>\n"
+                    f"Hamyon ID: <code>{payment_id}</code>\nSumma: <b>{amount}</b>\n"
+                    f"Player: {order['game_username']}"
+                )
+        elif status in ("cancel", "cancelled", "expired", "timeout"):
+            # Keep order pending, but add history note
+            _add_history(order["id"], order["status"], order["status"], "hamyon", f"Hamyon {status}: {data['reason'] or payment_id}")
+
+        return jsonify({"ok": True})
+
+    @app.post("/api/hamyon/callback/prepare")
+    def hamyon_callback_prepare():
+        return _handle_hamyon_callback()
+
+    @app.post("/api/hamyon/callback/complete")
+    def hamyon_callback_complete():
+        return _handle_hamyon_callback()
+
+    @app.post("/api/hamyon/webhook")
+    def hamyon_webhook_generic():
+        # Unified endpoint if user configures single URL
+        return _handle_hamyon_callback()
+
+    @app.get("/api/hamyon/callback/info")
+    def hamyon_callback_info():
+        # Helper for admin to see what URLs to set in @HamyonAPIBot
+        base = Config.WEBAPP_URL or request.host_url.rstrip("/")
+        return jsonify({
+            "ok": True,
+            "prepare_url": f"{base}/api/hamyon/callback/prepare",
+            "complete_url": f"{base}/api/hamyon/callback/complete",
+            "webhook_url": f"{base}/api/hamyon/webhook",
+        })
 
     # ---------------- profile ----------------
     @app.get("/api/profile")
@@ -439,6 +756,17 @@ def register_routes(app: Flask) -> None:
     @admin_required
     def admin_stats():
         counts = db.get_dashboard_counts()
+        # Hamyon stats
+        hamyon_stats = {}
+        try:
+            hamyon_stats = {
+                "total": db.fetchone("SELECT COUNT(*) AS c FROM hamyon_payments")["c"],
+                "pending": db.fetchone("SELECT COUNT(*) AS c FROM hamyon_payments WHERE status='pending'")["c"],
+                "paid": db.fetchone("SELECT COUNT(*) AS c FROM hamyon_payments WHERE status='paid'")["c"],
+                "cancelled": db.fetchone("SELECT COUNT(*) AS c FROM hamyon_payments WHERE status='cancelled'")["c"],
+            }
+        except Exception:
+            pass
         return jsonify({
             "ok": True,
             "counts": counts,
@@ -446,8 +774,8 @@ def register_routes(app: Flask) -> None:
             "monthly": db.revenue_series_monthly(12),
             "games": db.game_breakdown(),
             "top_packages": db.top_packages(8),
-            "recent": db.fetchall(
-                "SELECT * FROM orders ORDER BY id DESC LIMIT 8"),
+            "recent": db.fetchall("SELECT * FROM orders ORDER BY id DESC LIMIT 8"),
+            "hamyon": hamyon_stats,
         })
 
     @app.get("/api/admin/orders")
@@ -467,7 +795,10 @@ def register_routes(app: Flask) -> None:
         where = f"WHERE {' AND '.join(conds)}" if conds else ""
         total = db.fetchone(f"SELECT COUNT(*) AS c FROM orders o {where}", tuple(params))["c"]
         rows = db.fetchall(
-            f"""SELECT o.*, g.image_url AS game_image FROM orders o
+            f"""SELECT o.*, g.image_url AS game_image,
+                      (SELECT hp.status FROM hamyon_payments hp WHERE hp.order_code = o.order_code ORDER BY hp.id DESC LIMIT 1) AS hamyon_status,
+                      (SELECT hp.card FROM hamyon_payments hp WHERE hp.order_code = o.order_code ORDER BY hp.id DESC LIMIT 1) AS hamyon_card
+                FROM orders o
                 LEFT JOIN games g ON g.id = o.game_id
                 {where} ORDER BY o.id DESC LIMIT %s OFFSET %s""",
             tuple(params) + (per, (page - 1) * per))
@@ -483,8 +814,10 @@ def register_routes(app: Flask) -> None:
         history = db.fetchall(
             "SELECT * FROM order_history WHERE order_id = %s ORDER BY id", (order_id,))
         user = db.fetchone("SELECT * FROM users WHERE id = %s", (order["user_id"],))
+        hamyon = db.fetchall("SELECT * FROM hamyon_payments WHERE order_code = %s ORDER BY id DESC", (order["order_code"],))
         return jsonify({"ok": True, "order": order, "history": history,
-                        "user": _public_user(user) if user else None})
+                        "user": _public_user(user) if user else None,
+                        "hamyon_payments": hamyon})
 
     @app.put("/api/admin/orders/<int:order_id>")
     @admin_required
@@ -726,13 +1059,52 @@ def register_routes(app: Flask) -> None:
         db.execute("DELETE FROM payment_methods WHERE id = %s", (mid,))
         return jsonify({"ok": True})
 
+    # ----- hamyon admin -----
+    @app.get("/api/admin/hamyon/payments")
+    @admin_required
+    def admin_hamyon_payments():
+        page, per = _page_args()
+        conds, params = [], []
+        if request.args.get("status"):
+            conds.append("hp.status = %s"); params.append(request.args["status"])
+        if request.args.get("q", "").strip():
+            q = f"%{request.args['q'].strip()}%"
+            conds.append("(hp.order_code LIKE %s OR hp.payment_id LIKE %s OR hp.card LIKE %s)")
+            params.extend([q, q, q])
+        where = f"WHERE {' AND '.join(conds)}" if conds else ""
+        total = db.fetchone(f"SELECT COUNT(*) AS c FROM hamyon_payments hp {where}", tuple(params))["c"]
+        rows = db.fetchall(
+            f"""SELECT hp.*, o.game_name, o.package_name, o.price AS order_price, o.first_name, o.game_username
+                FROM hamyon_payments hp LEFT JOIN orders o ON o.order_code = hp.order_code
+                {where} ORDER BY hp.id DESC LIMIT %s OFFSET %s""",
+            tuple(params) + (per, (page - 1) * per))
+        return jsonify({"ok": True, "payments": rows, "total": total, "page": page, "per_page": per})
+
+    @app.post("/api/admin/hamyon/test")
+    @admin_required
+    def admin_hamyon_test():
+        shop_id, shop_key = _hamyon_shop_credentials()
+        if not shop_id or not shop_key:
+            return _err("hamyon_not_configured")
+        import hamyon as hm
+        ok, resp = hm.create_payment(shop_id, shop_key, 1000, f"TEST-{int(time.time())}")
+        # Immediately cancel if created
+        if ok and resp.get("payment_id"):
+            try:
+                hm.cancel_payment(resp["payment_id"], shop_id, shop_key)
+            except Exception:
+                pass
+        return jsonify({"ok": ok, "response": resp})
+
     # ----- settings -----
     _SETTING_KEYS = ("app_name", "app_tagline_uz", "app_tagline_ru", "app_tagline_en",
                      "logo_url", "hero_banner_url", "support_username",
                      "support_text_uz", "support_text_ru", "support_text_en",
                      "default_lang", "theme_primary", "theme_accent",
                      "announcement_uz", "announcement_ru", "announcement_en",
-                     "admin_password")
+                     "admin_password",
+                     "hamyon_enabled", "hamyon_shop_id", "hamyon_shop_key",
+                     "hamyon_auto_complete", "hamyon_card_name")
 
     @app.get("/api/admin/settings")
     @admin_required
@@ -745,7 +1117,11 @@ def register_routes(app: Flask) -> None:
         data = request.get_json(silent=True) or {}
         for key in _SETTING_KEYS:
             if key in data and data[key] is not None:
-                db.set_setting(key, str(data[key])[:2000])
+                # hamyon_shop_key should not be trimmed too aggressively? keep as is but strip
+                val = str(data[key])
+                if key == "hamyon_shop_key":
+                    val = val.strip()
+                db.set_setting(key, val[:2000])
         return jsonify({"ok": True, "settings": db.get_all_settings()})
 
     # ----- uploads -----
