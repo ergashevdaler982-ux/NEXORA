@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#071233">
+<title>NEXORA — Game Donat Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg" aria-hidden="true">
+  <span class="orb orb-1"></span>
+  <span class="orb orb-2"></span>
+  <span class="orb orb-3"></span>
+  <span class="grid"></span>
+</div>
+
+<!-- ============ SVG ICON SPRITE (animated via CSS) ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="nxg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <symbol id="i-game" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 7.5h10a4.5 4.5 0 0 1 4.4 5.4l-.7 3.1a3 3 0 0 1-5.1 1.3L14 15.5h-4l-1.6 1.8a3 3 0 0 1-5.1-1.3l-.7-3.1A4.5 4.5 0 0 1 7 7.5Z"/>
+    <path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="11.5" r=".6" fill="currentColor"/><circle cx="17.5" cy="13.5" r=".6" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z"/><path d="M4.5 7 12 11l7.5-4M12 11v10"/>
+  </symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c1.4-3.8 4.4-5.3 7.5-5.3s6.1 1.5 7.5 5.3"/>
+  </symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 12a7.5 7.5 0 0 1-7.5 7.5c-1.2 0-2.4-.3-3.4-.8L4 20l1.3-4.1A7.5 7.5 0 1 1 20 12Z"/>
+    <path d="M9 11.5h.01M12.5 11.5h.01M16 11.5h.01"/>
+  </symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+  </symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 13.5A7.5 7.5 0 0 1 10.5 4 6.8 6.8 0 1 0 20 13.5Z"/>
+  </symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.3 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.3-3.5-8.5S9.7 5.9 12 3.5Z"/>
+  </symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M13 2.5 4.5 13.5H11L9.5 21.5 19 10h-6.5L13 2.5Z"/>
+  </symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M3 6.5h18v3.5H3zM12 6.5V20M12 6.5S8 6.5 7 5.2C6.2 4.2 6.6 3 7.8 3c1.9 0 4.2 3.5 4.2 3.5Zm0 0s4 0 5-1.3c.8-1 .4-2.2-.8-2.2-1.9 0-4.2 3.5-4.2 3.5Z"/>
+  </symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2.8 19.5 6v6c0 5-3.2 8.3-7.5 9.7C7.7 20.3 4.5 17 4.5 12V6L12 2.8Z"/><path d="m9 11.5 2.2 2.2L15.5 9"/>
+  </symbol>
+  <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 14.5h4"/>
+  </symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 16V4.5M7.5 9 12 4.5 16.5 9"/><path d="M4 20.5h16"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m4.5 12.5 5 5 10-11"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M6 6l12 12M18 6 6 18"/>
+  </symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.5 5 7.5 12l7 7"/>
+  </symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/>
+  </symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>
+  </symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 3.5 10 14.5M20 3.5 14 20.5l-4-6-6.5-4L20 3.5Z"/>
+  </symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M12 3c.6 4.8 2.7 6.9 7.5 7.5-4.8.6-6.9 2.7-7.5 7.5-.6-4.8-2.7-6.9-7.5-7.5 4.8-.6 6.9-2.7 7.5-7.5Z"/>
+    <path d="M19 15.5c.3 2 1 2.7 3 3-2 .3-2.7 1-3 3-.3-2-1-2.7-3-3 2-.3 2.7-1 3-3Z"/>
+  </symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 12a8 8 0 1 1-2.3-5.6M20 3.5V8h-4.5"/>
+  </symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>
+  </symbol>
+</svg>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-logo" id="brandLogo"><svg><use href="#i-bolt"/></svg></span>
+    <span class="brand-text">
+      <b id="brandName">NEXORA</b>
+      <small id="brandTag">Game Donat</small>
+    </span>
+  </div>
+  <div class="top-actions">
+    <button class="pill-btn" id="langBtn" aria-label="Language">
+      <svg class="ic spin-slow"><use href="#i-globe"/></svg><b id="langCode">UZ</b>
+    </button>
+    <button class="icon-btn" id="themeBtn" aria-label="Theme">
+      <svg class="ic theme-ic"><use href="#i-moon" id="themeUse"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="announce" id="announce" hidden>
+  <svg class="ic pulse"><use href="#i-spark"/></svg><span id="announceText"></span>
+</div>
+
+<!-- ============ VIEW ============ -->
+<main class="view" id="view">
+  <div class="boot">
+    <div class="boot-logo float"><svg><use href="#i-bolt"/></svg></div>
+    <div class="boot-bar"><span></span></div>
+    <p id="bootText">Yuklanmoqda…</p>
+  </div>
+</main>
+
+<!-- ============ TAB BAR ============ -->
+<nav class="tabbar" id="tabbar">
+  <button class="tab active" data-tab="games">
+    <span class="tab-ic"><svg><use href="#i-game"/></svg></span><span class="tab-lb" data-i18n="nav_games">Games</span>
+  </button>
+  <button class="tab" data-tab="orders">
+    <span class="tab-ic"><svg><use href="#i-box"/></svg></span><span class="tab-lb" data-i18n="nav_orders">My Orders</span>
+  </button>
+  <button class="tab" data-tab="profile">
+    <span class="tab-ic"><svg><use href="#i-user"/></svg></span><span class="tab-lb" data-i18n="nav_profile">Profile</span>
+  </button>
+  <button class="tab" data-tab="support">
+    <span class="tab-ic"><svg><use href="#i-chat"/></svg></span><span class="tab-lb" data-i18n="nav_support">Support</span>
+  </button>
+  <span class="tab-glow" id="tabGlow"></span>
+</nav>
+
+<div id="modalRoot"></div>
+<div id="sheetRoot"></div>
+<div id="toastRoot"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

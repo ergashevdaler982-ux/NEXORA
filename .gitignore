@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+nexora.db
+uploads/*
+!uploads/.gitkeep
+*.log
